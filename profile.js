@@ -71,27 +71,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch('/api/users/password', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    currentPassword,
-                    newPassword
-                })
-            });
-
-            if (response.ok) {
-                showNotification('Password updated successfully', 'success');
-                securityForm.reset();
-            } else {
-                const data = await response.json();
-                showNotification(data.message || 'Error updating password', 'error');
+            const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+            if (!user || !user.email) {
+                showNotification('Please re-login and try again', 'error');
+                return;
             }
+
+            // Reauthenticate with current password
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+            await user.reauthenticateWithCredential(credential);
+
+            // Update password
+            await user.updatePassword(newPassword);
+            showNotification('Password updated successfully', 'success');
+            securityForm.reset();
         } catch (error) {
-            showNotification('Error updating password', 'error');
+            const message = error && error.message ? error.message : 'Error updating password';
+            showNotification(message, 'error');
         }
     });
 
@@ -271,13 +267,11 @@ async function deleteAddress(type) {
     }
 
     try {
-        const response = await fetch('/api/users/address', {
+        const response = await fetch(`/api/addresses/${encodeURIComponent(type)}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ type })
+            }
         });
 
         if (response.ok) {

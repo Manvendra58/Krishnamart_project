@@ -78,7 +78,7 @@ function renderProducts(productsToRender = products) {
                     ${product.discount ? `<span class="discount-badge">${product.discount}% OFF</span>` : ''}
                     ${product.isNew ? '<span class="new-badge">New</span>' : ''}
                 </div>
-                <button class="quick-view-btn" data-id="${product._id}">
+                <button class="quick-view-btn" data-id="${product.id || product._id}">
                     <i class="fas fa-eye"></i> Quick View
                 </button>
             </div>
@@ -97,11 +97,11 @@ function renderProducts(productsToRender = products) {
                     <p>${product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}</p>
                 </div>
                 <div class="product-actions">
-                    <button class="btn btn-primary add-to-cart" data-id="${product._id}"
+                    <button class="btn btn-primary add-to-cart" data-id="${product.id || product._id}"
                             ${product.stock <= 0 ? 'disabled' : ''}>
                         <i class="fas fa-shopping-cart"></i> Add to Cart
                     </button>
-                    <button class="btn btn-secondary order-now" data-id="${product._id}"
+                    <button class="btn btn-secondary order-now" data-id="${product.id || product._id}"
                             ${product.stock <= 0 ? 'disabled' : ''}>
                         <i class="fas fa-bolt"></i> Order Now
                     </button>

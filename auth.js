@@ -25,24 +25,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
                 submitBtn.disabled = true;
 
-                // Send login request to server
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
+                // Firebase login
+                const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                const idToken = await user.getIdToken();
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Login failed');
-                }
-
-                // Store token and user data in localStorage
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('userData', JSON.stringify(data.user));
+                // Store token and minimal user data in localStorage
+                localStorage.setItem('token', idToken);
+                localStorage.setItem('userData', JSON.stringify({
+                    id: user.uid,
+                    name: user.displayName || user.email?.split('@')[0] || 'User',
+                    email: user.email,
+                    createdAt: user.metadata?.creationTime || null,
+                    status: 'active'
+                }));
 
                 // Initialize empty arrays for orders and rewards if they don't exist
                 if (!localStorage.getItem('orders')) {
@@ -148,31 +144,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
                 submitBtn.disabled = true;
 
-                // Send signup request to server
-                const response = await fetch('/api/auth/signup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name, username, email, password })
-                });
+                // Firebase signup
+                const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    if (data.field) {
-                        document.getElementById(data.field).classList.add('error');
-                    }
-                    throw new Error(data.message || 'Signup failed');
+                // Optionally update display name
+                if (name) {
+                    await user.updateProfile({ displayName: name });
                 }
 
-                // Show success message
                 showSuccess('Account created successfully! Redirecting to login...');
-
-                // Redirect to login page after a short delay
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
 
             } catch (error) {
                 showError(error.message);
@@ -207,28 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending reset link...';
                 submitBtn.disabled = true;
 
-                // Send forgot password request to server
-                const response = await fetch('/api/auth/forgot-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Failed to send reset link');
-                }
-
-                // Show success message
+                // Firebase password reset
+                await window.firebaseAuth.sendPasswordResetEmail(email);
                 showSuccess('Password reset instructions have been sent to your email address');
-
-                // Redirect back to login page after a short delay
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
 
             } catch (error) {
                 showError(error.message);

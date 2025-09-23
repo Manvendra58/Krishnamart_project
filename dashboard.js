@@ -188,7 +188,7 @@ async function loadRecommendedProducts() {
                 <img src="${product.image}" alt="${product.name}">
                 <h3>${product.name}</h3>
                 <p class="price">$${product.price.toFixed(2)}</p>
-                <button class="add-to-cart" data-id="${product._id}">Add to Cart</button>
+                <button class="add-to-cart" data-id="${product.id || product._id}">Add to Cart</button>
             </div>
         `).join('');
 

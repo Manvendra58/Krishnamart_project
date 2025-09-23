@@ -1,3 +1,27 @@
+// Auto-attach Firebase ID token to all same-origin fetch requests
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init = {}) {
+        try {
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            const isSameOrigin = !/^https?:\/\//i.test(url) || url.startsWith(window.location.origin);
+            const token = localStorage.getItem('token');
+            if (isSameOrigin && token) {
+                init.headers = init.headers || {};
+                if (init.headers instanceof Headers) {
+                    if (!init.headers.has('Authorization')) init.headers.set('Authorization', `Bearer ${token}`);
+                } else if (Array.isArray(init.headers)) {
+                    const hasAuth = init.headers.some(([k]) => k.toLowerCase() === 'authorization');
+                    if (!hasAuth) init.headers.push(['Authorization', `Bearer ${token}`]);
+                } else {
+                    if (!init.headers['Authorization']) init.headers['Authorization'] = `Bearer ${token}`;
+                }
+            }
+        } catch (_) {}
+        return originalFetch.apply(this, [input, init]);
+    };
+})();
+
 // DOM Elements
 const productList = document.getElementById('product-list');
 const categorySelect = document.getElementById('category');
@@ -14,22 +38,12 @@ const productsPerPage = 12;
 // Authentication Functions
 async function login(email, password) {
     try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('token', data.token);
-            window.location.href = 'index.html';
-        } else {
-            const error = await response.json();
-            showAlert(error.message, 'error');
-        }
+        // Use Firebase auth from window
+        const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        const idToken = await user.getIdToken();
+        localStorage.setItem('token', idToken);
+        window.location.href = 'index.html';
     } catch (error) {
         console.error('Error logging in:', error);
         showAlert('An error occurred while logging in', 'error');
